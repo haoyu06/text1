@@ -32,7 +32,12 @@ float xd = 0.0;   // 期望位置
 float dxd = 0.0;  // 期望速度
 float ddxd = 0.0; // 期望加速度
 float Fn = 0.0;
+float output = 0.0;
 float output_delay1= 0.0;
+float output_delay2= 0.0;
+float output_delay3= 0.0;
+float output_delay4= 0.0;
+float output_delay5= 0.0;
 float Fext = 0.0; // 外部力
 float position = 0.0;
 float velocity = 0.0;
@@ -98,8 +103,12 @@ void loop()
   dxn = M1_con.motor_rx_data.cur_speed; // 获取当前电机速度
   Fn = M1_con.motor_rx_data.cur_torque; // 获取当前电机扭矩
   
-  Fext = 0.5 *output_delay1 - Fn; // 
-  //output_delay1 = output;
+  Fext = 0.5 *output_delay5 - Fn; // 
+  output_delay5 = output_delay4;
+  output_delay4 = output_delay3;
+  output_delay3 = output_delay2;
+  output_delay2 = output_delay1;
+  output_delay1 = output;
 
   ddxd = ((Fext - Ks * (xn - position) - Dd * (dxn - velocity)) / Md) + acc; // 期望加速度计算Dd * (dxn - velocity)
   // ddxd = ((0 - Ks * (xn - position) - Dd * dxn) / Md);
@@ -115,7 +124,7 @@ void loop()
   float derivative = (error - last_error) / deltaTime; // 用实际时间计算微分项
   lastTime = currentTime;                              // 更新上次时
 
-  float output = Kp * error + Kd * derivative; // PD控制输出
+  output = Kp * error + Kd * derivative; // PD控制输出
   last_error = error;                          // 更新上一次误差
 
   //M1_con.Set_CurMode(output); // 发送电流指令///
@@ -143,6 +152,8 @@ void loop()
   Serial.print(Fn);
   Serial.print(",");
   Serial.print(Fext);
+  Serial.print(",");
+  Serial.print(output_delay5);
   Serial.print(",");
   Serial.println(target_position);
 
