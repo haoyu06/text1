@@ -23,8 +23,8 @@ const float dt = 0.01; // 时间步长，单位：s
 // pd parameter
 // const float amplitude = 120.0f;  // 正弦波幅度
 // const float frequency = 0.2f;    // 正弦波频率（调节速度）
-float Kp = 1.7;  // 比例增益//1.7，0.2有点延迟和过冲,但能接受
-float Kd = 0.2; // 导数增益
+float Kp = 1.8;  // 比例增益//1.7，0.2有点延迟和过冲,但能接受.//1.8-0.18效果更好只有一点点波动了
+float Kd = 0.18; // 导数增益
 float last_error = 0;
 float last_position = 0;
 unsigned long previousMillis = 0; // 用于时间控制
@@ -120,9 +120,22 @@ void loop()
   rk4_update(xd, dxd, ddxd, dt);
 
 
+  // static unsigned long lastTime = 0;
+  // float current_position = M1_con.motor_rx_data.cur_angle; // 读取当前位置
+  // float error = xd - current_position;        // 计算位置误差
+  // unsigned long currentTime = millis();
+  // float deltaTime = (currentTime - lastTime) / 1000.0; // 转换为秒
+  // float derivative = (error - last_error) / deltaTime; // 用实际时间计算微分项
+  // lastTime = currentTime;                              // 更新上次时
+
+  // output = Kp * error + Kd * derivative; // PD控制输出
+  // last_error = error;                          // 更新上一次误差
+
+  // M1_con.Set_CurMode(output);
+
   static unsigned long lastTime = 0;
   float current_position = M1_con.motor_rx_data.cur_angle; // 读取当前位置
-  float error = xd - current_position;        // 计算位置误差
+  float error = target_position - current_position;        // 计算位置误差
   unsigned long currentTime = millis();
   float deltaTime = (currentTime - lastTime) / 1000.0; // 转换为秒
   float derivative = (error - last_error) / deltaTime; // 用实际时间计算微分项
@@ -131,15 +144,8 @@ void loop()
   output = Kp * error + Kd * derivative; // PD控制输出
   last_error = error;                          // 更新上一次误差
 
-  //M1_con.Set_CurMode(output); // 发送电流指令///
+  M1_con.Set_CurMode(output);
 
-
-
-  // dxd += ddxd * dt;  // 更新期望速度
-  // xd += dxd * dt;    // 更新期望位置
-
-
-  M1_con.Set_CurMode(output);//0.1* xd
 
   // 数据打印
   Serial.print("d: ");
