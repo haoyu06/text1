@@ -1,6 +1,10 @@
 // Fext 和output差了可能4ms，也就是说滞后4s的output可以用来做dob来去除fext的外力影响
-////阻抗的xd，desire，xn三线合一，无敌 但是为什么我给力他没效果，2024年12月12日，后续调整刚度
+////阻抗的xd，desire，xn三线合一，无敌 但是为什么我给力他角度减小了但效果还是没有我想的我力越大他就直接停住的效果，2024年12月12日，后续调整刚度
 
+//idea，转两次正常的，然后记录下没有外力时候的电流的值，还是采取这个方法吧
+//pd去掉或者调弱点？
+//不对，现在是有外界力，他的轨迹会增大.不对不对，我现在相当于是手阻挡电机运动，电机是pd来阻挡我的？？？。那也不对啊，为什么是电流会加大，然后fout持平，神奇，为什么反过来了，等下，我的外力帮助电机到达了理想位置，那么他电流的值因为pd就会减小，那是不是变相实现了阻抗？？
+//导纳控制的时候千万要记得是把由于外力引起的速度或者位置偏差叠加到期望速度或者位置上
 
 
 #include <Arduino.h>
@@ -10,9 +14,9 @@
 MI_Motor_ M1_con;
 
 // admittance parament
-float Md = 6; // 模拟质量，单位：kg   //增大加速度的敏感程度//6,15,1.8;///7,14,2往下走//6，8，2的下降程度变缓了
+float Md = 2; // 模拟质量，单位：kg   ////4，6，2，上电会抖，然后正常运动的时候也抖，可能加速度太大了？
 float Ks = 6;  // 劲度系数，单位：N/m
-float Dd = 2; // 阻尼系数，单位：N*s/m  //增大则加速度去噪,角度变化圆滑
+float Dd = 1; // 阻尼系数，单位：N*s/m  //增大则加速度去噪,角度变化圆滑
 // float Kp = 1.0;                   // 单位：N/m
 const float dt = 0.01; // 时间步长，单位：s
 
@@ -103,7 +107,7 @@ void loop()
   dxn = M1_con.motor_rx_data.cur_speed; // 获取当前电机速度
   Fn = M1_con.motor_rx_data.cur_torque; // 获取当前电机扭矩
   
-  Fext = 0.5 *output_delay5 - Fn; // 
+  Fext = 0.5 *output_delay5 - Fn; // 力经过变换
   output_delay5 = output_delay4;
   output_delay4 = output_delay3;
   output_delay3 = output_delay2;
