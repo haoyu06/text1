@@ -1,7 +1,8 @@
 #include "Current.h"
 
 const int numCurrent = 617; // 根据实际数据修改
-const float angles[numCurrent] = {
+const float currents[numCurrent] = {
+-0.2633,
 -0.17,
 -0.23,
 -0.1533,
@@ -618,5 +619,5 @@ const float angles[numCurrent] = {
 -0.0267,
 -0.15,
 -0.2267,
--0.2633,
+
 };

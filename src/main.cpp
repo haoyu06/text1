@@ -11,6 +11,7 @@
 #include "TWAI_CAN_MI_Motor.h"
 #include <math.h> // 引入数学库以使用sin函数
 #include "Angle.h"
+#include "Current.h"
 MI_Motor_ M1_con;
 
 // admittance parament
@@ -30,6 +31,7 @@ float last_position = 0;
 unsigned long previousMillis = 0; // 用于时间控制
 
 int i = 0;
+int j = 0;
 float xn = 0.0;   // 当前电机位置
 float dxn = 0.0;  // 当前电机速度
 float xd = 0.0;   // 期望位置
@@ -88,8 +90,18 @@ void loop()
   {
     i = 0;
   }
-  float newPosition = angles[i] * (M_PI / 180.0) * 2; // 设置伺服电机到指定角度
-  newPosition = newPosition * 10;
+
+  if (j < numCurrent)
+  {
+    j++;
+  }
+  if (j == numCurrent)
+  {
+    j = 0;
+  }
+  float current_ref = currents[i];
+  float newPosition = angles[i] * (M_PI / 180.0) * 20; // 设置伺服电机到指定角度
+
 
   // 计算位移变化
   float dx = newPosition - position; // 计算位移变化量
@@ -107,12 +119,15 @@ void loop()
   dxn = M1_con.motor_rx_data.cur_speed; // 获取当前电机速度
   Fn = M1_con.motor_rx_data.cur_torque; // 获取当前电机扭矩
   
-  Fext = 0.5 *output_delay5 - Fn; // 力经过变换
-  output_delay5 = output_delay4;
-  output_delay4 = output_delay3;
-  output_delay3 = output_delay2;
-  output_delay2 = output_delay1;
-  output_delay1 = output;
+  // Fext = 0.5 *output_delay5 - Fn; // 力经过变换
+  // output_delay5 = output_delay4;
+  // output_delay4 = output_delay3;
+  // output_delay3 = output_delay2;
+  // output_delay2 = output_delay1;
+  // output_delay1 = output;
+
+  Fext = output - current_ref;
+  
 
   ddxd = ((Fext - Ks * (xn - position) - Dd * (dxn - velocity)) / Md) + acc; // 期望加速度计算Dd * (dxn - velocity)
   // ddxd = ((0 - Ks * (xn - position) - Dd * dxn) / Md);
@@ -135,7 +150,7 @@ void loop()
 
   static unsigned long lastTime = 0;
   float current_position = M1_con.motor_rx_data.cur_angle; // 读取当前位置
-  float error = target_position - current_position;        // 计算位置误差
+  float error = xd - current_position;        // 计算位置误差
   unsigned long currentTime = millis();
   float deltaTime = (currentTime - lastTime) / 1000.0; // 转换为秒
   float derivative = (error - last_error) / deltaTime; // 用实际时间计算微分项
@@ -163,7 +178,7 @@ void loop()
   Serial.print(",");
   Serial.print(Fext);
   Serial.print(",");
-  Serial.print(output_delay5);
+  Serial.print(current_ref);
   Serial.print(",");
   Serial.println(target_position);
 
