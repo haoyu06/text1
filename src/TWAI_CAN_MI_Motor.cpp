@@ -151,7 +151,8 @@ void MI_Motor_::Decoding_Motor_data(CanFrame* can_Frame_point, can_rx_frame_t* m
     motor_frame_point->mode_sta = RX_29ID_DISASSEMBLE_MODE_STA(can_Frame_point->identifier);
 
     //弧度单位
-    motor_frame_point->cur_angle = RX_DATA_DISASSEMBLE_CUR_ANGLE(can_Frame_point->data)*INT2ANGLE - 4*PI;
+    motor_frame_point->cur_angle = RX_DATA_DISASSEMBLE_CUR_ANGLE(can_Frame_point->data)*INT2ANGLE- 4.48*PI;
+    // motor_frame_point->cur_angle = RX_DATA_DISASSEMBLE_CUR_ANGLE(can_Frame_point->data)*INT2ANGLE - 4*PI;- 6.7*PI
     motor_frame_point->cur_speed = RX_DATA_DISASSEMBLE_CUR_SPEED(can_Frame_point->data)*INT2SPEED -30;
     motor_frame_point->cur_torque = RX_DATA_DISASSEMBLE_CUR_TORQUE(can_Frame_point->data)*INT2TORQUE - 12;
     motor_frame_point->cur_temp = RX_DATA_DISASSEMBLE_CUR_TEMP(can_Frame_point->data)/10.f;
