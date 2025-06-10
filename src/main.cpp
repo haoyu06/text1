@@ -6,18 +6,19 @@
 
 MI_Motor_ M1_con;
 
+// admittance parament//2-6-1
+float Md = 1.7; // 模拟质量，单位：kg
+float Ks = 2;  // 劲度系数，单位：N/m
+float Dd = 1.2; // 阻尼系数，单位：N*s/m
+const float dt = 0.01; // 时间步长，单位：s
 
 
-
-
-
-// 全局变量
 int i = 0;
-
-float xn = 0.0; // 当前电机位置
-float dxn = 0.0; // 当前电机速度
-float xd = 0.0; // 期望位置
-float dxd = 0.0; // 期望速度
+int j = 0;
+float xn = 0.0;   // 当前电机位置
+float dxn = 0.0;  // 当前电机速度
+float xd = 0.0;   // 期望位置
+float dxd = 0.0;  // 期望速度
 float ddxd = 0.0; // 期望加速度
 float Fn = 0.0;
 float output = 0.0;
@@ -25,18 +26,39 @@ float Fext = 0.0; // 外部力
 
 float velocity = 0.0;
 
+
 float torque = 1;      // 扭矩 (Nm) [-12, 12]
-float position = 0;    // 位置 (rad) [-12.5, 12.5]
+float position = 0.0;    // 位置 (rad) [-12.5, 12.5]
 float speed = 2.0;        // 速度 (rad/s) [-30, 30]
 float kp = 0.7;        // 比例增益 [0, 500]0.125
 float kd = 0.01;          // 微分增益 [0, 5]0.0158
+
+
+void rk4_update(float &xd, float &dxd, float ddxd, float dt)
+{
+  float k1_v = ddxd;
+  float k1_p = dxd;
+
+  float k2_v = ddxd + 0.5 * dt * k1_v;
+  float k2_p = dxd + 0.5 * dt * k1_p;
+
+  float k3_v = ddxd + 0.5 * dt * k2_v;
+  float k3_p = dxd + 0.5 * dt * k2_p;
+
+  float k4_v = ddxd + dt * k3_v;
+  float k4_p = dxd + dt * k3_p;
+
+  // 组合四步的结果更新速度和位置
+  dxd += (dt / 6.0) * (k1_v + 2 * k2_v + 2 * k3_v + k4_v);
+  xd += (dt / 6.0) * (k1_p + 2 * k2_p + 2 * k3_p + k4_p);
+}
+
+
+
+
 // 控制任务
 static void controlTask(void *pvParameters) {
-    // 用 vTaskDelayUntil 固定周期
 
-
-    // 用来计算导数的高精度时间戳
-    unsigned long lastTime = micros();
 
     for (;;) {
 
@@ -48,10 +70,31 @@ static void controlTask(void *pvParameters) {
         if (i < numAngles) i++;
         if (i == numAngles) i = 0;
         float newPosition = angles[i] * (M_PI / 180.0)*20 ; // 期望位置
-        xn = M1_con.motor_rx_data.cur_angle; 
-//pd位置控制
+
+        float dx = newPosition - position; // 计算位移变化量
+        position = newPosition;            // 更新当前位置
+        float target_position = position;
+
+        // 计算速度
+        float newvelocity = dx / dt; // 计算速度
+        float dv = newvelocity - velocity;
+        velocity = newvelocity;
+        // 计算加速度
+        float acc = dv / dt;
+
+        xn = M1_con.motor_rx_data.cur_angle;  // 获取当前电机位置
+        dxn = M1_con.motor_rx_data.cur_speed; // 获取当前电机速度
+        Fn = M1_con.motor_rx_data.cur_torque; // 获取当前电机扭矩
+
+        // 计算外部力 Fext
+        // Fext = Fn - current_ref; // 外部力等于电机扭矩与期望电流参考值的差  //之前是output-current_ref
+
+        // 计算期望加速度
+        ddxd = ((Fext - Ks * (xn - position) - Dd * (dxn - velocity)) / Md) + acc;
+        rk4_update(xd, dxd, ddxd, dt);
+
         // M1_con.Set_PosMode(newPosition,10);
-        M1_con.Motor_ControlMode(torque, newPosition, speed, kp, kd);
+        M1_con.Motor_ControlMode(torque, xd, speed, kp, kd);
         // 打印输出
         Serial.print("d: ");
         Serial.print(xn);
@@ -78,7 +121,7 @@ void setup() {
     M1_con.Motor_Set_Zero();
     // delay(100);
     // M1_con.Set_SingleParameter(0x701D, 0);
-    delay(100);
+    //delay(100);
     M1_con.Change_Mode(CTRL_MODE);
     M1_con.Motor_Enable();
 //mode 运控模式：CTRL_MODE 电流模式：CUR_MODE 速度模式：SPEED_MODE 位置模式：POS_MODE
